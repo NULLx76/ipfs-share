@@ -4,15 +4,12 @@ import os
 import argparse
 from shutil import which
 from typing import List
-
+from urllib.parse import ParseResult, urlparse, urljoin
 
 try:
     from tkinter import Tk
 except:
-    CLIPBOARD_SUPPORT = False
-else:
-    CLIPBOARD_SUPPORT = True
-
+    Tk = None
 
 # TODO: Custom gateway
 GATEWAYS = ["https://cloudflare-ipfs.com", "https://ipfs.xirion.net"]
@@ -27,6 +24,14 @@ def path(path: str) -> str:
             f"{path} is not a valid path to a file or dir")
 
 
+def url(url: str):
+    parsed = urlparse(url)
+    if all([parsed.scheme, parsed.netloc]):
+        return parsed.geturl()
+    else:
+        raise argparse.ArgumentTypeError(f"{url} is not a valid url")
+
+
 # Upload file to ipfs
 def upload_file(path: str, ipfs: str) -> str:
     # ipfs subcommand
@@ -35,7 +40,7 @@ def upload_file(path: str, ipfs: str) -> str:
     result = subprocess.run([ipfs, "add", "-wq", path],
                             capture_output=True, text=True)
     if result.returncode != 0:
-        raise ValueError(f"ipfs command failed:\n\n{result.stderr}")
+        raise Exception(f"ipfs command failed:\n\n{result.stderr}")
 
     folder_hash = result.stdout.splitlines()[-1]
     file_name = os.path.basename(path)
@@ -51,7 +56,7 @@ def upload_folder(path: str, ipfs: str) -> str:
     result = subprocess.run([ipfs, "add", "-rq", path],
                             capture_output=True, text=True)
     if result.returncode != 0:
-        raise ValueError(f"ipfs command failed:\n\n{result.stderr}")
+        raise Exception(f"ipfs command failed:\n\n{result.stderr}")
 
     folder_hash = result.stdout.splitlines()[-1]
     return folder_hash
@@ -68,7 +73,7 @@ def upload(path: str, ipfs: str = "ipfs") -> str:
 
 
 def copy_to_clipboard(string: str):
-    if CLIPBOARD_SUPPORT:
+    if Tk is not None:
         r = Tk()
         r.withdraw()
         r.clipboard_clear()
@@ -77,16 +82,18 @@ def copy_to_clipboard(string: str):
         r.destroy()
 
 
-def main(path: str, clipboard: bool):
+def main(path: str, clipboard: bool, gateways: List[str]):
     if (ipfs := which("ipfs")) is None:
-        raise ValueError("ipfs binary could not be found")
+        raise Exception("ipfs binary could not be found")
 
     # TODO: Remote pinning
     cid = upload(path, ipfs)
-    urls = [f"{g}/ipfs/{cid}" for g in GATEWAYS]
+    urls = [urljoin(g, f"ipfs/{cid}") for g in gateways]
+
     if clipboard:
         copy_to_clipboard(urls[-1])
 
+    print(f"CID: {cid}")
     for url in urls:
         print(url)
 
@@ -94,8 +101,11 @@ def main(path: str, clipboard: bool):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Share a file using IPFS')
     parser.add_argument('path', type=path, help='the file or folder to share')
+    parser.add_argument('-g', '--gateway', action="append",
+                        type=url, help="gateway(s) to use for url generation (repitition allowed)")
     parser.add_argument('-nc', '--no-clipboard',
                         action="store_true", help='disable clipboard support')
 
     args = parser.parse_args()
-    main(args.path, not args.no_clipboard)
+
+    main(args.path, not args.no_clipboard, args.gateway or GATEWAYS)
