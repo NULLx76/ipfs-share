@@ -4,7 +4,7 @@ and copying the url to your clipboard.
 
 ### Usage
 ```shell
-usage: ipfs-share.py [-h] [-nc] [-p] [-g URL] [-r URL] [-t {node,cluster}] path
+usage: ipfs_share.py [-h] [-nc] [-p] [-g URL] [-r URL] [-t {node,cluster}] path
 
 Share a file using IPFS
 
@@ -25,7 +25,7 @@ optional arguments:
 
 ### Example
 ```shell
-> ipfs-share index.html
+> ipfs_share index.html
 
 CID: QmTeLU7tgi82xU9Hmmp4GwTV11XDPF6Ts5qvCciPNKhs3r
 https://cloudflare-ipfs.com/ipfs/QmTeLU7tgi82xU9Hmmp4GwTV11XDPF6Ts5qvCciPNKhs3r/index.html
