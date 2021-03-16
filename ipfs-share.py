@@ -139,10 +139,10 @@ if __name__ == "__main__":
     parser.add_argument("-nc", "--no-clipboard", action="store_true", help="disable clipboard support")
     parser.add_argument("-p", "--pin", action="store_true", help="Pin file/folder to a remote pinner")
 
-    parser.add_argument("-g", "--gateway", action="append", type=url_t, default=gateways,
+    parser.add_argument("-g", "--gateway", metavar="URL", action="append", type=url_t, default=gateways,
                         help="gateway(s) to use for url generation (repetition allowed). You can also use the 'IPFS_GATEWAYS' environment variable")
     
-    parser.add_argument("-r", "--remote-pinner-url", type=url_t, default=remote_pinner_url, required="-p" in sys.argv and remote_pinner_url is None,
+    parser.add_argument("-r", "--remote-pinner-url", metavar="URL", type=url_t, default=remote_pinner_url, required="-p" in sys.argv and remote_pinner_url is None,
                         help="Url of a remote pinner. You can also use the 'IPFS_REMOTE_PINNER' environment variable. Required when using '--pin'")
     
     parser.add_argument("-t", "--pinner-type", type=RemotePinner, default=pinner_type, choices=list(RemotePinner),
