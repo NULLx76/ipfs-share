@@ -4,7 +4,7 @@ and copying the url to your clipboard.
 
 ### Usage
 ```shell
-usage: ipfs_share.py [-h] [-nc] [-p] [-g URL] [-r URL] [-t {node,cluster}] path
+usage: ipfs-share [-h] [--no-clipboard] [--nocopy] [-p] [-g URL] [-r URL] [-t {node,cluster}] path
 
 Share a file using IPFS
 
@@ -13,7 +13,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -nc, --no-clipboard   disable clipboard support
+  --no-clipboard        disable clipboard support
+  --nocopy              Use the experimental ipfs 'no copy' feature
   -p, --pin             Pin file/folder to a remote pinner
   -g URL, --gateway URL
                         gateway(s) to use for url generation (repetition allowed). You can also use the 'IPFS_GATEWAYS' environment variable
