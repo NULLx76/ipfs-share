@@ -1,102 +1,79 @@
-#!/usr/bin/env python3
-import subprocess
+from __future__ import annotations
+
 import os
-
-from .pinner import RemotePinner
-
-from dataclasses import dataclass
-from shutil import which
-from typing import Tuple, List
 from urllib.parse import urljoin
 
-# Try importing Tk for clipboard support
-try:
-    from tkinter import Tk
-except ImportError:
-    Tk = None
+from ipfs_share import ipfshttpclient as ipfs
+from ipfs_share.clipboard import copy_to_clipboard
+
+BASE_FOLDER = "/ipfs-share"
 
 
-@dataclass
-class ShareOptions:
-    target: str
-    enable_clipboard: bool
-    gateways: List[str]
-    pin: bool
-    pinner: RemotePinner
-    no_copy: bool
+class IpfsShare:
+    def __init__(self, addr: str = ipfs.DEFAULT_ADDR, base_folder: str = BASE_FOLDER):
+        self._client = ipfs.connect(addr=addr)
+        self._base_folder = base_folder
+
+    def __enter__(self) -> IpfsShare:
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self._client.close()
+
+    def root_cid(self):
+        self._client.files.mkdir(self._base_folder, parents=True)
+        return self._client.files.stat(self._base_folder)['Hash']
+
+    def add(self, path: str) -> str:
+        if os.path.isfile(path):
+            return self.add_file(path)
+        elif os.path.isdir(path):
+            return self.add_folder(path)
+        else:
+            raise ValueError("Path must be a file or folder")
+
+    def add_file(self, path: str) -> str:
+        if not os.path.isfile(path):
+            raise ValueError("Path must be a file")
+
+        filename = os.path.basename(path)
+        mfs_path = os.path.join(BASE_FOLDER, filename)
+        self._client.files.mkdir(os.path.split(mfs_path)[0], parents=True)
+
+        with open(os.path.abspath(path), "rb") as f:
+            self._client.files.write(mfs_path, f, create=True)
+
+        return f"{self.root_cid()}/{filename}"
+
+    def add_folder(self, path: str) -> str:
+        if not os.path.isdir(path):
+            raise ValueError("Path must be a directory")
+
+        abs_path = os.path.abspath(path)
+        prefix = os.sep.join(abs_path.split(os.sep)[:-1])
+
+        for dirpath, _, filenames in os.walk(abs_path):
+            for file in filenames:
+                path = os.path.join(dirpath, file)
+                mfs_path = BASE_FOLDER + path.removeprefix(prefix)
+                self._client.files.mkdir(os.path.dirname(mfs_path), parents=True)
+                with open(path, "rb") as f:
+                    self._client.files.write(mfs_path, f, create=True)
+
+        return f"{self.root_cid()}/{abs_path.split(os.sep)[-1]}"
 
 
-# Upload file to ipfs
-def upload_file(file: str, ipfs: str, no_copy: bool) -> Tuple[str, str]:
-    # ipfs subcommand
-    # -w: Wrap, wraps the file in a folder, allows linking to the filename
-    # -q: Quiet, gives better parsable output
-    cmd = [ipfs, "add", "-wq", file]
-    if no_copy:
-        cmd.insert(3, "--nocopy")
+def ipfs_share(path: str, clipboard: bool, gateways: [str]):
+    with IpfsShare() as share:
+        cid = share.add(path)
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise Exception(f"ipfs command failed:\n\n{result.stderr}")
-
-    folder_hash = result.stdout.splitlines()[-1]
-    file_name = os.path.basename(file)
-
-    return str(folder_hash), f"{folder_hash}/{file_name}"
-
-
-# Upload folder to ipfs, returns (folder_cid, file_cid)
-def upload_folder(path: str, ipfs: str, no_copy: bool) -> str:
-    # ipfs subcommand
-    # -r: Recursive, required for folders
-    # -q: Quiet, gives better parsable output
-    cmd = [ipfs, "add", "-rq", path]
-    if no_copy:
-        cmd.insert(3, "--nocopy")
-
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise Exception(f"ipfs command failed:\n\n{result.stderr}")
-
-    folder_hash = result.stdout.splitlines()[-1]
-    return str(folder_hash)
-
-
-# Upload folder or file to ipfs, returns (folder_cid, file_cid)
-def upload(path: str, ipfs: str = "ipfs", no_copy: bool = False) -> Tuple[str, str]:
-    if os.path.isdir(path):
-        cid = upload_folder(path, ipfs, no_copy)
-        return cid, cid
-    elif os.path.isfile(path):
-        return upload_file(path, ipfs, no_copy)
-    else:
-        raise ValueError(f"{path} is an invalid path to file or dir")
-
-
-def copy_to_clipboard(string: str):
-    if Tk is not None:
-        r = Tk()
-        r.withdraw()
-        r.clipboard_clear()
-        r.clipboard_append(string)
-        r.update()
-        r.destroy()
-
-
-def ipfs_share(options: ShareOptions):
-    if (ipfs := which("ipfs")) is None:
-        raise Exception("ipfs binary could not be found")
-
-    folder_cid, file_cid = upload(options.target, ipfs)
-
-    if options.pin:
-        options.pinner.pin(folder_cid)
-
-    urls = [urljoin(g, f"ipfs/{file_cid}") for g in options.gateways]
-
-    if options.enable_clipboard:
+    urls = [urljoin(g, f"ipfs/{cid}") for g in gateways]
+    if clipboard:
         copy_to_clipboard(urls[-1])
 
-    print(f"CID: {folder_cid}")
-    for el in urls:
-        print(el)
+    print(f"CID: {cid}")
+    for url in urls:
+        print(url)

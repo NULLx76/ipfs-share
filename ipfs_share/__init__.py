@@ -1,2 +1,1 @@
-from .ipfs_share import ipfs_share, ShareOptions
-from .pinner import RemotePinner, RemotePinnerType
+from ipfs_share.ipfshttpclient import ipfshttpclient
