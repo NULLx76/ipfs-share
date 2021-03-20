@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import os
 from urllib.parse import urljoin
+from typing import Optional
 
 from ipfs_share import ipfshttpclient as ipfs
 from ipfs_share.clipboard import copy_to_clipboard
+from ipfs_share.pinner import RemotePinner
 
 BASE_FOLDER = "/ipfs-share"
 
 
 class IpfsShare:
-    def __init__(self, addr: str = ipfs.DEFAULT_ADDR, base_folder: str = BASE_FOLDER):
+    def __init__(self, addr: str = ipfs.DEFAULT_ADDR, base_folder: Optional[str] = None):
         self._client = ipfs.connect(addr=addr)
-        self._base_folder = base_folder
+        self._base_folder = base_folder if base_folder else BASE_FOLDER
 
     def __enter__(self) -> IpfsShare:
         return self
@@ -66,9 +68,12 @@ class IpfsShare:
         return f"{self.root_cid()}/{abs_path.split(os.sep)[-1]}"
 
 
-def ipfs_share(path: str, clipboard: bool, gateways: [str]):
+def ipfs_share(path: str, clipboard: bool, gateways: [str], remote_pinner: Optional[RemotePinner] = None):
     with IpfsShare() as share:
         cid = share.add(path)
+
+    if remote_pinner is not None:
+        remote_pinner.pin(cid)
 
     urls = [urljoin(g, f"ipfs/{cid}") for g in gateways]
     if clipboard:

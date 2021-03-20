@@ -6,6 +6,7 @@ except ImportError:
 
 
 def copy_to_clipboard(string: str):
+    """Copies a string to clipboard using Tk"""
     if Tk is not None:
         r = Tk()
         r.withdraw()

@@ -1,6 +1,3 @@
-[submodule "ipfshttpclient"]
-	path = ipfshttpclient
-	url = git@github.com:NULLx76/py-ipfs-http-client.git
 [submodule "ipfs_share/ipfshttpclient"]
 	path = ipfs_share/ipfshttpclient
 	url = git@github.com:NULLx76/py-ipfs-http-client.git

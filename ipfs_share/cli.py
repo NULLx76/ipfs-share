@@ -3,13 +3,13 @@ import argparse
 from urllib.parse import urlparse
 
 from ipfs_share.ipfs_share import ipfs_share
+from ipfs_share.pinner import RemotePinner, RemotePinnerType
 
 GATEWAYS = ["https://cloudflare-ipfs.com", "https://ipfs.xirion.net"]
 
 
 def path_t(path: str) -> str:
     """Checker for argparse to verify that the path exists"""
-
     if os.path.isdir(path) or os.path.isfile(path):
         return path
     else:
@@ -18,7 +18,6 @@ def path_t(path: str) -> str:
 
 def url_t(url: str) -> str:
     """Checker for argparse to validate urls"""
-
     parsed = urlparse(url)
     if all([parsed.scheme, parsed.netloc]):
         return parsed.geturl()
@@ -27,29 +26,30 @@ def url_t(url: str) -> str:
 
 
 def main():
-    gateways = [url_t(x) for x in env_gateways.split()] if (env_gateways := os.environ.get("IPFS_GATEWAYS")) is not None else None
-    # remote_pinner_url = url_t(env_remote_pinner) if (env_remote_pinner := os.environ.get("IPFS_REMOTE_PINNER")) is not None else None
-    # pinner_type = RemotePinnerType(env_pinner_type) if (env_pinner_type := os.environ.get("IPFS_REMOTE_PINNER_TYPE")) is not None else RemotePinnerType.Node
+    env_help = """
+Environment:
+  IPFS_GATEWAYS              A list of IPFS Gateway URLs to be used for generating urls
+  IPFS_REMOTE_PINNER_TYPE    Either 'node' or 'cluster' depending on what remote pinner you want to use
+  IPFS_REMOTE_PINNER_URL     The URL for a remote pinner
+"""
 
-    parser = argparse.ArgumentParser(description="Share a file using IPFS")
-    parser.add_argument("path", type=path_t, help="the file or folder to share")
-    parser.add_argument("--no-clipboard", action="store_true", help="disable clipboard support")
+    gateways = [url_t(x) for x in eg.split()] if (eg := os.environ.get("IPFS_GATEWAYS")) else GATEWAYS
+    pinner_type = RemotePinnerType(ept) if (ept := os.environ.get("IPFS_REMOTE_PINNER_TYPE")) else RemotePinnerType.Node
+    remote_pinner_url = url_t(erp) if (erp := os.environ.get("IPFS_REMOTE_PINNER_URL")) else None
 
-    parser.add_argument("-g", "--gateway", metavar="URL", action="append", type=url_t, default=gateways,
-                        help="gateway(s) to use for url generation (repetition allowed). You can also use the 'IPFS_GATEWAYS' environment variable")
-
-    # parser.add_argument("-p", "--pin", action="store_true", help="Pin file/folder to a remote pinner")
-    # parser.add_argument("-r", "--remote-pinner-url", metavar="URL", type=url_t, default=remote_pinner_url,
-    #                     required="-p" in sys.argv and remote_pinner_url is None,
-    #                     help="Url of a remote pinner. You can also use the 'IPFS_REMOTE_PINNER' environment variable. Required when using '--pin'")
-    #
-    # parser.add_argument("-t", "--pinner-type", type=RemotePinnerType, default=pinner_type, choices=list(RemotePinnerType),
-    #                     help="Remote pinner type to use. You can also use the 'IPFS_REMOTE_PINNER_TYPE' environment variable. Defaults to node")
+    parser = argparse.ArgumentParser(description="Share a file using IPFS", epilog=env_help,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("path", type=path_t, help="The file or folder to share")
+    parser.add_argument("-p", "--pin", action="store_true", help="Pin target to a remote node or cluster")
+    parser.add_argument("--no-clipboard", action="store_true", help="Disable clipboard support")
 
     args = parser.parse_args()
 
-    # pinner = RemotePinner.from_type(args.pinner_type, args.remote_pinner_url)
-    ipfs_share(args.path, not args.no_clipboard, args.gateway or GATEWAYS)
+    if args.pin and remote_pinner_url is None:
+        raise ValueError("Can't pin without IPFS_REMOTE_PINNER_URL")
+
+    pinner = RemotePinner.from_type(pinner_type, remote_pinner_url) if remote_pinner_url is not None else None
+    ipfs_share(args.path, not args.no_clipboard, gateways, pinner)
 
 
 if __name__ == "__main__":

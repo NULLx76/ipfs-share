@@ -4,24 +4,22 @@ and copying the url to your clipboard.
 
 ### Usage
 ```shell
-usage: ipfs-share [-h] [--no-clipboard] [--nocopy] [-p] [-g URL] [-r URL] [-t {node,cluster}] path
+usage: ipfs-share [-h] [-p] [--no-clipboard] path
 
 Share a file using IPFS
 
 positional arguments:
-  path                  the file or folder to share
+  path            The file or folder to share
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --no-clipboard        disable clipboard support
-  --nocopy              Use the experimental ipfs 'no copy' feature
-  -p, --pin             Pin file/folder to a remote pinner
-  -g URL, --gateway URL
-                        gateway(s) to use for url generation (repetition allowed). You can also use the 'IPFS_GATEWAYS' environment variable
-  -r URL, --remote-pinner-url URL
-                        Url of a remote pinner. You can also use the 'IPFS_REMOTE_PINNER' environment variable. Required when using '--pin'
-  -t {node,cluster}, --pinner-type {node,cluster}
-                        Remote pinner type to use. You can also use the 'IPFS_REMOTE_PINNER_TYPE' environment variable. Defaults to node
+  -h, --help      show this help message and exit
+  -p, --pin       Pin target to a remote node or cluster
+  --no-clipboard  Disable clipboard support
+
+Environment:
+  IPFS_GATEWAYS              A list of IPFS Gateway URLs to be used for generating urls
+  IPFS_REMOTE_PINNER_TYPE    Either 'node' or 'cluster' depending on what remote pinner you want to use
+  IPFS_REMOTE_PINNER_URL     The URL for a remote pinner
 ```
 
 ### Example
@@ -36,6 +34,5 @@ https://ipfs.xirion.net/ipfs/QmTeLU7tgi82xU9Hmmp4GwTV11XDPF6Ts5qvCciPNKhs3r/inde
 
 ### Requirements
 * `python` version 3.9 (untested on older versions)
-* `ipfs` binary in your path
 * `python-requests` for sending http requests
 * (optional) `tk` for clipboard support

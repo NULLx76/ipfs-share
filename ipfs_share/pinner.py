@@ -5,6 +5,7 @@ from enum import Enum
 from urllib.parse import urljoin
 from abc import ABC
 from typing import Union
+from ipfs_share import ipfshttpclient as ipfs
 
 
 class RemotePinnerType(Enum):
@@ -30,22 +31,16 @@ class RemotePinner(ABC):
 
 
 class NodeAPI(RemotePinner):
-    url: str
+    def __init__(self, addr: str):
+        self._client = ipfs.connect(addr=addr)
 
     def pin(self, cid: str) -> None:
-        res = requests.post(urljoin(self.url, f"/api/v0/pin/add?arg={cid}"))
-        if res.status_code != 200:
-            raise Exception(f"Failed remote pin: {res.text}")
-
-    def __init__(self, url: str):
-        self.url = url
+        self._client.pin.add(cid)
 
 
 class ClusterAPI(RemotePinner):
-    url: str
+    def __init__(self, addr: str):
+        self._addr = addr
 
     def pin(self, cid: str) -> None:
         raise NotImplementedError
-
-    def __init__(self, url: str):
-        self.url = url
