@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from urllib.parse import urljoin
+from urllib.request import pathname2url
 from typing import Optional
 
 from ipfs_share import ipfshttpclient as ipfs
@@ -75,7 +76,7 @@ def ipfs_share(path: str, clipboard: bool, gateways: [str], remote_pinner: Optio
     if remote_pinner is not None:
         remote_pinner.pin(cid)
 
-    urls = [urljoin(g, f"ipfs/{cid}") for g in gateways]
+    urls = [urljoin(g, pathname2url(f"ipfs/{cid}")) for g in gateways]
     if clipboard:
         copy_to_clipboard(urls[-1])
 
